@@ -54,6 +54,15 @@ def is_static_int(number):
 
 
 def torch_layout_to_ck_layout(torch_layout):
+    # A contiguous [M, 1] scale can have strides [1, 1]. CK broadcasts
+    # rowwise scales with a zero leading dimension, so this must be Col
+    # to index by row; Row would index by column, potentially out of bounds.
+    if (
+        len(torch_layout.size) == 2
+        and torch_layout.size[-1] == 1
+        and torch_layout.stride[-2] == 1
+    ):
+        return "Col"
     if torch_layout.stride[-1] == 1:
         return "Row"
     elif torch_layout.stride[-2] == 1:
